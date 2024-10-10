@@ -1,0 +1,384 @@
+---
+title: "October 2024 Ann Arbor R Users' Meetup: Introduction to the censusapi package"
+format: 
+  html:
+    other-links:
+      - text: "U.S. Census Bureau Website"
+        href: https://www.census.gov/
+      - text: "Census Bureau Data GUI"
+        href: https://data.census.gov/
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-summary: "Show the code"
+    code-copy: true
+    code-tools: true
+    df-print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction to the United States Census Bureau
+
+## What is the US Census Bureau?
+
+The [U.S. Census Bureau](https://www.census.gov/about/what.html) is the federal government’s largest statistical agency. They are dedicated to providing current facts and figures about America’s people, places, and economy.
+
+## What kinds of surveys do they conduct?
+
+The Census Bureau conducts a number of censuses and survey, including:
+
+-   [American Community Survey (ACS)](https://www.census.gov/programs-surveys/acs) - an ongoing survey that provides data every year—giving communities the current information they need to make important decisions. The ACS covers a broad range of topics about social, economic, housing, and demographic characteristics of the U.S. population.
+
+-   [Decennial Census](https://www.census.gov/decennial-census) - Every 10 years, the U.S. Census Bureau conducts a census to determine the number of people living in the United States. The U.S. Census Bureau conducts the census in years ending in zero, on Census Day, which is April 1. The data collected by the decennial census are used to apportion the number of seats each state has in the U.S. House of Representatives.
+
+-   [Economic Census](https://www.census.gov/EconomicCensus) - The Economic Census is the official measure of the Nation’s businesses and economy. Conducted every five years, the survey serves as the statistical benchmark for current economic activity, such as, the Gross Domestic Product and the Producer Price Index.
+
+-   [and more](https://www.census.gov/programs-surveys.html)
+
+## Geography Hierarchy
+
+The Census Bureau is also responsible for maintaining a nationwide geographic database and a national address file for supporting censuses and surveys. The Standard hierarchy of Census Geographic Entities, shown below, displays how different geographic areas related to one another.
+
+![](geography_hierarchy.png)
+
+# Pulling Census Data Without An API
+
+## Primer: American Community Survey
+
+The American Community Survey (ACS) is an ongoing survey that provides data every year—giving communities the current information they need to make important decisions. The ACS covers a broad range of topics about social, economic, housing, and demographic characteristics of the U.S. population.
+
+Detailed Tables, Subject Tables, Data Profiles, and Comparison Profiles are available for the nation, all 50 states, the District of Columbia, Puerto Rico, every congressional district, every metropolitan area, all counties, all places (i.e., towns or cities), and all census tracts and block groups.
+
+-   **Detailed Tables** contain the most detailed estimates on all topics for all geographies. The data are presented as estimates.
+
+    -   Example: **B06011** \| Median Income in the Past 12 Months (in 2022 Inflation-Adjusted Dollars) by Place of Birth in the United States
+
+-   **Subject Tables** provide a span of information on a particular ACS subject presented in the format of both estimates and percentages.
+
+    -   Example: **S1901** \| Income in the Part 12 Months (in 2022 Inflation-Adjusted Dollars)
+
+-   **Data Profiles** contain broad social, economic, housing, and demographic information. The data are presented as estimates and percentages.
+
+    -   Example: **DP03** \| Selected Economic Characteristics
+
+-   **Comparison Profiles** are similar to Data Profiles but also include comparisons with past-year data. The current 5-year data are compared with the preceding non-overlapping 5-year data (e.g. 2018-2022 ACS 5-year estimates compared to 2013-2017 ACS 5-year estimates) and include statistical significance testing.
+
+    -   Example: **CP03 \|** Comparative Economic CharacteristicsThe best way to prime us for interacting with the Census API is to introduce you to their online data portal, [data.census.gov](https://data.census.gov/).
+
+## A Tour of the data.census.gov
+
+Even once we know which survey we want to focus on, there are an overwhelming number of tables available across all of the Census projects, so the best method for finding the data you need is to whittle down the selection.
+
+Here's a brief tour of how I navigate data.census.gov:
+
+{{< video census_gui_tour.mp4 >}}
+
+# Introduction to the censusapi package
+
+The [`censusapi`](https://cran.r-project.org/package=censusapi) package facilitates more seamless interaction with the Census Bureau API.
+
+```{r load_libraries}
+#| warning: false
+library(tidyverse)
+library(censusapi)
+```
+
+## Obtaining an API Key
+
+`censusapi` recommends using an API key from the Census Bureau. You can sign up for one [here](http://api.census.gov/data/key_signup.html).
+
+```{r save_api_key}
+#| eval: false
+
+# Check to see if you already have a CENSUS_KEY or CENSUS_API_KEY saved
+# If so, no further action is needed
+Sys.getenv("CENSUS_KEY")
+
+# If not, add your key to your Renviron file
+Sys.setenv(CENSUS_KEY="PASTEYOURKEYHERE")
+
+# Reload .Renviron
+readRenviron("~/.Renviron")
+
+# Check to see that the expected key is output in your R console
+Sys.getenv("CENSUS_KEY")
+```
+
+Because I (always) use R projects to delineate the things I'm working on, I often "lose" my API key. To circumvent this, I utilize the Keychain Access app on Mac to store my key, and define my key in the `getCensus` function.
+
+```{r using_keychain_access}
+#| eval: false
+
+library(keyring)
+key_set(service = "census_api_key")
+```
+
+With this method, I have to manually set `key = key_get("census_api_key")` as an argument in `getCensus()`, but it keeps my key secure.
+
+## Getting Started
+
+The main function in the package is `getCensus()`, which makes an API call and returns a dataframe. This function requires a few key arguments, regardless of the API that you're hitting:
+
+-   `key`: your census API key; defaults to the one save in your R environ file
+
+-   `name`: the programmatic name of the endpoint as defined by the Census, like “acs/acs5” or “timeseries/bds/firms”
+
+-   `vintage`: the survey year, required for aggregate or microdata APIs
+
+-   `vars`: a list of variables to retrieve
+
+-   `region`: the geography level to retrieve, such as state or county, required for nearly all endpoints
+
+## Finding API Names, Variable Names & Geography Levels
+
+For this talk, we'll focus on a few data points that are provided from the American Community Survey (ACS) 5-Year Datasets, but the ideas discussed will be largely applicable for all of the datasets.
+
+First, I want to search for the API name for the 5-Year ACS datasets:
+
+```{r getting_the_api_name}
+census_apis <- listCensusApis()
+census_apis |> 
+  tibble() |> 
+  filter(str_detect(title, "American Community Survey"),
+         str_detect(title, "5-Year"),
+         vintage == 2022) |> 
+  select(title, name, type, description)
+```
+
+Next, based on the tables that we located earlier in the census data interface, I want to find the name for the median income data point in the S1901 subject table:
+
+```{r getting_the_variable_names}
+income_variables <- listCensusMetadata(name = "acs/acs5/subject",
+                                       vintage = 2022,
+                                       type = "variables",
+                                       group = "S1901")
+income_variables |> 
+  tibble() |> 
+  filter(str_detect(label, "Median")) |> 
+  select(name, label) |> 
+  arrange(name)
+```
+
+Finally, I want to understand what geography levels to feed into the function and if I'll need to use the `regionin` argument in addition to `region`:
+
+```{r getting_geography_levels}
+geographies <- listCensusMetadata(name = "acs/acs5/subject",
+                                  vintage = 2022,
+                                  type = "geographies")
+geographies |> 
+  tibble() |> 
+  rowwise() |> 
+  mutate(across(c(requires:last_col()), \(x) str_c(x, collapse = ", ")),
+         across(c(requires:last_col()), \(x) na_if(x, "")))
+```
+
+## Getting the Data
+
+Now that I have identified the inputs for the main function arguments, I can begin pulling data from the API.
+
+Pull median income for each state:
+
+```{r pull_state_median_income}
+getCensus(name = "acs/acs5/subject",
+          vintage = 2022,
+          vars = c("NAME",
+                   "S1901_C01_012E"),
+          region = "state",
+          key = keyring::key_get("census_api_key"))
+```
+
+Pull median income for each census tract in Michigan. Notice that here I need to use the `regionin` argument in addition to the `region` argument.
+
+```{r pull_tract_median_income}
+getCensus(name = "acs/acs5/subject",
+          vintage = 2022,
+          vars = c("NAME",
+                   "S1901_C01_012E"),
+          region = "tract:*",
+          regionin = "state:26",
+          key = keyring::key_get("census_api_key"))
+```
+
+You can get variables from multiple tables, as long as they are all from the same API name/vintage.
+
+```{r getting_the_variable_names_2}
+financial_characteristics <- listCensusMetadata(name = "acs/acs5/subject",
+                                                vintage = 2022,
+                                                type = "variables",
+                                                group = "S2503")
+financial_characteristics |> 
+  tibble() |> 
+  filter(str_detect(label, "^Estimate"),
+         str_detect(label, "Occupied housing units$")) |> 
+  select(name, label) |> 
+  arrange(name)
+```
+
+```{r pull_state_median_income_and_occupancy_status}
+getCensus(name = "acs/acs5/subject",
+          vintage = 2022,
+          vars = c("NAME",
+                   "S1901_C01_012E",
+                   "S2503_C03_001E",
+                   "S2503_C05_001E"),
+          region = "state",
+          key = keyring::key_get("census_api_key"))
+```
+
+# Tips And Tricks I've Learned
+
+## Which datasets to use
+
+![](1_vs_5_year_esimate_differences.png)
+
+Should you use the 1-year or the 5-year estimates? That depends (but you saw that coming didn't you 😁). According to [guidance from the Census Bureau](https://www.census.gov/programs-surveys/acs/guidance/estimates.html), it's a balance between currency and precision. If the former is more important for your applications, you should use the 1-year estimates; if the latter is more important; use the 5-year estimates. You should also use the 5-year estimate if you're examining smaller geographies (e.g. census tracts).
+
+## How to get granular nationwide data
+
+I often want to pull information for smaller geographies across the country. However, the API requires that I limit my results using state. To work around this limit, I utilize the `fips` vector within the package and loops to grab granular, nationwide data.
+
+```{r race_and_ethnicity_variables}
+race_ethnicity_variables <- listCensusMetadata(name = "acs/acs5",
+                                               vintage = 2022,
+                                               type = "variables",
+                                               group = "B03002")
+race_ethnicity_variables |> 
+  tibble() |>
+  filter(str_detect(label, "Estimate!!Total:"),
+         str_detect(label, "Annotation", negate = TRUE)) |> 
+  select(name, label) |> 
+  arrange(name)
+```
+
+```{r get_race_ethnicity_data}
+for (f in fips) {
+  if(f == "01"){ 
+    race_and_ethnicity_df <- tibble()
+  }
+  
+  tmp <- getCensus(name = "acs/acs5",
+                                     vintage = "2022",
+                                     vars = c("NAME",
+                                              "B03002_001E",
+                                              str_c("B03002_00",
+                                                    seq(3, 9, 1),
+                                                    "E"),
+                                              "B03002_012E"),
+                                     region = "tract:*",
+                                     regionin = str_c("state:", f),
+                                     key = keyring::key_get("census_api_key"))
+  
+  race_and_ethnicity_df <- bind_rows(race_and_ethnicity_df,
+                                     tmp)
+}
+```
+
+I can then clean up the data to my liking:
+
+```{r tidy_race_ethnicity_data}
+race_and_ethnicity_df |> 
+    tibble() |> 
+    rename(state_code = state,
+           county_code = county,
+           tract_code = tract,
+           tract_name = NAME,
+           total_population = 5,
+           non_hispanic_white = 6,
+           non_hispanic_black = 7,
+           non_hispanic_aian = 8,
+           non_hispanic_asian = 9,
+           non_hispanic_nhpi = 10, 
+           non_hispanic_other = 11,
+           non_hispanic_two_or_more = 12,
+           hispanic = 13) |> 
+  separate(col = tract_name,
+           into = c("census_tract_name", "county_name", "state_name"),
+           sep = "(;|,) ") |> 
+  mutate(fips = str_c(state_code, county_code),
+         .after = county_code) |> 
+  mutate(across(-c(state_code:total_population), \(x) x / total_population)) |> 
+  rename_with(~str_c("perc_", .), -c(state_code:total_population)) |> 
+  rename(population_size = total_population)
+```
+
+**BONUS TIP**: I add incremental messaging within my loops so that I know how they are progressing.
+
+```{r loop_progression_messages}
+fips_df <- tibble(
+  state_code = fips,
+  state_abb = c(state.abb[1:8], "DC", state.abb[9:50]),
+  state_name = c(state.name[1:8], "District of Columbia", state.name[9:50])
+)
+
+for (f in fips) {
+  
+  instance_start <- Sys.time()
+  
+  if(f == "01"){ 
+    start_time <- Sys.time()
+    print(str_c("Start time: ", format(start_time, "%I:%M:%S %p"), "; Pulling race and ethnicity metrics for census tracts.........."))
+    
+    race_and_ethnicity_df <- tibble()
+  }
+  
+  tmp <- getCensus(name = "acs/acs5",
+                                     vintage = "2022",
+                                     vars = c("NAME",
+                                              "B03002_001E",
+                                              str_c("B03002_00",
+                                                    seq(3, 9, 1),
+                                                    "E"),
+                                              "B03002_012E"),
+                                     region = "tract:*",
+                                     regionin = str_c("state:", f),
+                                     key = keyring::key_get("census_api_key"))
+  
+  race_and_ethnicity_df <- bind_rows(race_and_ethnicity_df,
+                                     tmp)
+  
+  loop_fips_name <- fips_df |> 
+    filter(state_code == f) |> 
+    mutate(info = str_c(state_name, " (", state_abb, ")")) |> 
+    pull(info)
+  
+  instance_end <- Sys.time()
+  run_time <- as.numeric(round(difftime(instance_end,
+                                        instance_start,
+                                        units = "secs"),
+                               digits = 2))
+  
+  print(str_c("(", which(fips == f), "/", length(fips), ") ",
+              loop_fips_name,
+              " race and ethnicity information has been collected",
+              ". (loop run time: ",
+              if_else(run_time < 60,
+                      str_c(run_time, " seconds)"),
+                      str_c(round(run_time / 60, digits = 2), " minutes)"))
+  ))
+  
+  if(f == "56"){
+    end_time <- Sys.time()
+    run_time <- as.numeric(round(difftime(end_time,
+                                          start_time,
+                                          units = "secs"),
+                                 digits = 2))
+    print(str_c("All race and ethnicity metrics have been pulled; Total run time: ",
+                if_else(run_time < 60,
+                        str_c(run_time, " seconds"),
+                        str_c(round(run_time / 60, digits = 2), " minutes)"))
+    ))
+  }
+}
+```
+
+# Helpful Resources/Links
+
+| Resources | Link |
+|----|----|
+| censusapi package documentation | <https://www.hrecht.com/censusapi/index.html> |
+| Census Bureau course | <https://www.census.gov/data/academy/courses/intro-to-the-census-bureau-data-api.html> |
+| Article from UT Data | <https://utdata.github.io/rwd-r-census-examples/01-censusapi.html> |
+| API details | <https://www.census.gov/data/developers/data-sets.html> |
+| tidycensus package | <https://walker-data.com/tidycensus/index.html> |
