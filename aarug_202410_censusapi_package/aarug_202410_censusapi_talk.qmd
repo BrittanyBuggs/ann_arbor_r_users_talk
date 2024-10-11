@@ -23,17 +23,17 @@ editor_options:
 
 ## What is the US Census Bureau?
 
-The [U.S. Census Bureau](https://www.census.gov/about/what.html) is the federal government’s largest statistical agency. They are dedicated to providing current facts and figures about America’s people, places, and economy.
+The [U.S. Census Bureau](https://www.census.gov/about/what.html) is the federal government's largest statistical agency. They are dedicated to providing current facts and figures about America's people, places, and economy.
 
 ## What kinds of surveys do they conduct?
 
 The Census Bureau conducts a number of censuses and survey, including:
 
--   [American Community Survey (ACS)](https://www.census.gov/programs-surveys/acs) - an ongoing survey that provides data every year—giving communities the current information they need to make important decisions. The ACS covers a broad range of topics about social, economic, housing, and demographic characteristics of the U.S. population.
+-   [American Community Survey (ACS)](https://www.census.gov/programs-surveys/acs) - an ongoing survey that provides data every year---giving communities the current information they need to make important decisions. The ACS covers a broad range of topics about social, economic, housing, and demographic characteristics of the U.S. population.
 
 -   [Decennial Census](https://www.census.gov/decennial-census) - Every 10 years, the U.S. Census Bureau conducts a census to determine the number of people living in the United States. The U.S. Census Bureau conducts the census in years ending in zero, on Census Day, which is April 1. The data collected by the decennial census are used to apportion the number of seats each state has in the U.S. House of Representatives.
 
--   [Economic Census](https://www.census.gov/EconomicCensus) - The Economic Census is the official measure of the Nation’s businesses and economy. Conducted every five years, the survey serves as the statistical benchmark for current economic activity, such as, the Gross Domestic Product and the Producer Price Index.
+-   [Economic Census](https://www.census.gov/EconomicCensus) - The Economic Census is the official measure of the Nation's businesses and economy. Conducted every five years, the survey serves as the statistical benchmark for current economic activity, such as, the Gross Domestic Product and the Producer Price Index.
 
 -   [and more](https://www.census.gov/programs-surveys.html)
 
@@ -47,7 +47,7 @@ The Census Bureau is also responsible for maintaining a nationwide geographic da
 
 ## Primer: American Community Survey
 
-The American Community Survey (ACS) is an ongoing survey that provides data every year—giving communities the current information they need to make important decisions. The ACS covers a broad range of topics about social, economic, housing, and demographic characteristics of the U.S. population.
+The American Community Survey (ACS) is an ongoing survey that provides data every year---giving communities the current information they need to make important decisions. The ACS covers a broad range of topics about social, economic, housing, and demographic characteristics of the U.S. population.
 
 Detailed Tables, Subject Tables, Data Profiles, and Comparison Profiles are available for the nation, all 50 states, the District of Columbia, Puerto Rico, every congressional district, every metropolitan area, all counties, all places (i.e., towns or cities), and all census tracts and block groups.
 
@@ -65,11 +65,11 @@ Detailed Tables, Subject Tables, Data Profiles, and Comparison Profiles are avai
 
 -   **Comparison Profiles** are similar to Data Profiles but also include comparisons with past-year data. The current 5-year data are compared with the preceding non-overlapping 5-year data (e.g. 2018-2022 ACS 5-year estimates compared to 2013-2017 ACS 5-year estimates) and include statistical significance testing.
 
-    -   Example: **CP03 \|** Comparative Economic CharacteristicsThe best way to prime us for interacting with the Census API is to introduce you to their online data portal, [data.census.gov](https://data.census.gov/).
+    -   Example: **CP03 \|** Comparative Economic Characteristics
 
 ## A Tour of the data.census.gov
 
-Even once we know which survey we want to focus on, there are an overwhelming number of tables available across all of the Census projects, so the best method for finding the data you need is to whittle down the selection.
+The best way to prime us for interacting with the Census API is to introduce you to their online data portal, [data.census.gov](https://data.census.gov/). Even once we know which survey we want to focus on, there are an overwhelming number of tables available across all of the Census projects, so the best method for finding the data you need is to whittle down the selection.
 
 Here's a brief tour of how I navigate data.census.gov:
 
@@ -123,7 +123,7 @@ The main function in the package is `getCensus()`, which makes an API call and r
 
 -   `key`: your census API key; defaults to the one save in your R environ file
 
--   `name`: the programmatic name of the endpoint as defined by the Census, like “acs/acs5” or “timeseries/bds/firms”
+-   `name`: the programmatic name of the endpoint as defined by the Census, like "acs/acs5" or "timeseries/bds/firms"
 
 -   `vintage`: the survey year, required for aggregate or microdata APIs
 
@@ -140,7 +140,7 @@ First, I want to search for the API name for the 5-Year ACS datasets:
 ```{r getting_the_api_name}
 census_apis <- listCensusApis()
 census_apis |> 
-  tibble() |> 
+  tibble() |>
   filter(str_detect(title, "American Community Survey"),
          str_detect(title, "5-Year"),
          vintage == 2022) |> 
@@ -375,10 +375,18 @@ for (f in fips) {
 
 # Helpful Resources/Links
 
-| Resources | Link |
-|----|----|
-| censusapi package documentation | <https://www.hrecht.com/censusapi/index.html> |
-| Census Bureau course | <https://www.census.gov/data/academy/courses/intro-to-the-census-bureau-data-api.html> |
-| Article from UT Data | <https://utdata.github.io/rwd-r-census-examples/01-censusapi.html> |
-| API details | <https://www.census.gov/data/developers/data-sets.html> |
-| tidycensus package | <https://walker-data.com/tidycensus/index.html> |
++---------------------------------+----------------------------------------------------------------------------------------+
+| Resources                       | Link                                                                                   |
++=================================+========================================================================================+
+| censusapi package documentation | <https://www.hrecht.com/censusapi/index.html>                                          |
++---------------------------------+----------------------------------------------------------------------------------------+
+| Census Bureau course            | <https://www.census.gov/data/academy/courses/intro-to-the-census-bureau-data-api.html> |
++---------------------------------+----------------------------------------------------------------------------------------+
+| Article from UT Data            | <https://utdata.github.io/rwd-r-census-examples/01-censusapi.html>                     |
++---------------------------------+----------------------------------------------------------------------------------------+
+| API details                     | <https://www.census.gov/data/developers/data-sets.html>                                |
++---------------------------------+----------------------------------------------------------------------------------------+
+| tidycensus package              | <https://walker-data.com/tidycensus/index.html>                                        |
+|                                 |                                                                                        |
+| mapgl                           |                                                                                        |
++---------------------------------+----------------------------------------------------------------------------------------+
